@@ -2,6 +2,12 @@
 
 package blbl.cat3399.feature.player.engine
 
+import android.os.Handler
+import androidx.media3.exoplayer.Renderer
+import androidx.media3.exoplayer.mediacodec.MediaCodecAdapter
+import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
+import androidx.media3.exoplayer.video.MediaCodecVideoRenderer
+import androidx.media3.exoplayer.video.VideoRendererEventListener
 import android.content.Context
 import android.net.Uri
 import android.os.SystemClock
@@ -94,7 +100,7 @@ internal class ExoPlayerEngine(
         ExoPlayer.Builder(context, BlblRenderersFactory(context.applicationContext, volumeBalanceProcessor))
             .setLoadControl(loadControl)
             .setTrackSelector(trackSelector)
-            .setVideoChangeFrameRateStrategy(C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_ONLY_IF_SEAMLESS)
+            .setVideoChangeFrameRateStrategy(C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_OFF)
             .build()
 
     private val listeners: MutableSet<BlblPlayerEngine.Listener> = CopyOnWriteArraySet()
@@ -890,4 +896,39 @@ private class BlblRenderersFactory(
             .setAudioProcessors(arrayOf(volumeBalanceProcessor))
             .build()
     }
+
+    override fun buildVideoRenderers(
+        context: Context,
+        extensionRendererMode: Int,
+        mediaCodecSelector: MediaCodecSelector,
+        enableDecoderFallback: Boolean,
+        eventHandler: Handler,
+        eventListener: VideoRendererEventListener,
+        allowedVideoJoiningTimeMs: Long,
+        out: ArrayList<Renderer>,
+    ) {
+        val builder =
+            MediaCodecVideoRenderer.Builder(context)
+                .setCodecAdapterFactory(getCodecAdapterFactory())
+                .setMediaCodecSelector(mediaCodecSelector)
+                .setAllowedJoiningTimeMs(allowedVideoJoiningTimeMs)
+                .setEnableDecoderFallback(enableDecoderFallback)
+                .setEventHandler(eventHandler)
+                .setEventListener(eventListener)
+                .setMaxDroppedFramesToNotify(DefaultRenderersFactory.MAX_DROPPED_VIDEO_FRAME_COUNT_TO_NOTIFY)
+        out.add(NoVsyncMediaCodecVideoRenderer(builder))
+    }
 }
+
+private class NoVsyncMediaCodecVideoRenderer(
+    builder: MediaCodecVideoRenderer.Builder,
+) : MediaCodecVideoRenderer(builder) {
+    override fun renderOutputBufferV21(
+        codec: MediaCodecAdapter,
+        index: Int,
+        presentationTimeUs: Long,
+        releaseTimeNs: Long,
+    ) {
+        // 绕过电视错误的 vsync 相位，按当前时间直接上屏
+        super.renderOutputBufferV21(codec, index, presentationTimeUs, System.nanoTime())
+    }
