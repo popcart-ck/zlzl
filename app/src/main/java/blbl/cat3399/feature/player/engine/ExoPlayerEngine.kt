@@ -94,7 +94,7 @@ internal class ExoPlayerEngine(
         ExoPlayer.Builder(context, BlblRenderersFactory(context.applicationContext, volumeBalanceProcessor))
             .setLoadControl(loadControl)
             .setTrackSelector(trackSelector)
-            .setVideoChangeFrameRateStrategy(C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_OFF)
+            .setVideoChangeFrameRateStrategy(C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_ONLY_IF_SEAMLESS)
             .build()
 
     private val listeners: MutableSet<BlblPlayerEngine.Listener> = CopyOnWriteArraySet()
