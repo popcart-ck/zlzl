@@ -932,3 +932,4 @@ private class NoVsyncMediaCodecVideoRenderer(
         // 绕过电视错误的 vsync 相位，按当前时间直接上屏
         super.renderOutputBufferV21(codec, index, presentationTimeUs, System.nanoTime())
     }
+}
