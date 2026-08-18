@@ -944,8 +944,7 @@ private class NoVsyncMediaCodecVideoRenderer(
         presentationTimeUs: Long,
         releaseTimeNs: Long,
     ) {
-        // 绕过电视错误的 vsync 相位；同时叠加用户手动调节的画面延迟（正=延后，负=提前）
-        val offsetNs = VideoFrameReleaseOffset.valueMs * 1_000_000L
-        super.renderOutputBufferV21(codec, index, presentationTimeUs, System.nanoTime() + offsetNs)
+        // 跳过 ExoPlayer 和 SurfaceFlinger 的 vsync 时间戳对齐，直接让 MediaCodec 立即上屏
+        codec.releaseOutputBuffer(index, true)
     }
 }
