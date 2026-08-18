@@ -812,8 +812,8 @@ class AppPrefs(context: Context) {
         val steps = clamped / PLAYER_VIDEO_DELAY_MS_STEP
         val remainder = clamped % PLAYER_VIDEO_DELAY_MS_STEP
         val snapped =
-            if (abs(remainder) >= PLAYER_VIDEO_DELAY_MS_STEP / 2) {
-                (steps + if (clamped >= 0) 1 else -1) * PLAYER_VIDEO_DELAY_MS_STEP
+            if (remainder >= PLAYER_VIDEO_DELAY_MS_STEP / 2) {
+                (steps + 1) * PLAYER_VIDEO_DELAY_MS_STEP
             } else {
                 steps * PLAYER_VIDEO_DELAY_MS_STEP
             }
@@ -1273,7 +1273,7 @@ class AppPrefs(context: Context) {
         const val PLAYER_AUDIO_BALANCE_MEDIUM = "medium"
         const val PLAYER_AUDIO_BALANCE_HIGH = "high"
 
-        const val PLAYER_VIDEO_DELAY_MS_MIN = -500
+        const val PLAYER_VIDEO_DELAY_MS_MIN = 0
         const val PLAYER_VIDEO_DELAY_MS_MAX = 500
         const val PLAYER_VIDEO_DELAY_MS_STEP = 50
         const val PLAYER_VIDEO_DELAY_MS_DEFAULT = 0
