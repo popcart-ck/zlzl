@@ -798,6 +798,28 @@ class AppPrefs(context: Context) {
             prefs.edit().putString(KEY_PLAYER_AUDIO_BALANCE_LEVEL, normalized).apply()
         }
 
+    var playerVideoDelayMs: Int
+        get() {
+            val raw = prefs.getInt(KEY_PLAYER_VIDEO_DELAY_MS, PLAYER_VIDEO_DELAY_MS_DEFAULT)
+            return normalizePlayerVideoDelayMs(raw)
+        }
+        set(value) {
+            prefs.edit().putInt(KEY_PLAYER_VIDEO_DELAY_MS, normalizePlayerVideoDelayMs(value)).apply()
+        }
+
+    private fun normalizePlayerVideoDelayMs(value: Int): Int {
+        val clamped = value.coerceIn(PLAYER_VIDEO_DELAY_MS_MIN, PLAYER_VIDEO_DELAY_MS_MAX)
+        val steps = clamped / PLAYER_VIDEO_DELAY_MS_STEP
+        val remainder = clamped % PLAYER_VIDEO_DELAY_MS_STEP
+        val snapped =
+            if (abs(remainder) >= PLAYER_VIDEO_DELAY_MS_STEP / 2) {
+                (steps + if (clamped >= 0) 1 else -1) * PLAYER_VIDEO_DELAY_MS_STEP
+            } else {
+                steps * PLAYER_VIDEO_DELAY_MS_STEP
+            }
+        return snapped.coerceIn(PLAYER_VIDEO_DELAY_MS_MIN, PLAYER_VIDEO_DELAY_MS_MAX)
+    }
+
     var playerPlaybackMode: String
         get() = PlayerPlaybackModes.normalize(prefs.getString(KEY_PLAYER_PLAYBACK_MODE, PLAYER_PLAYBACK_MODE_NONE))
         set(value) = prefs.edit().putString(KEY_PLAYER_PLAYBACK_MODE, PlayerPlaybackModes.normalize(value)).apply()
@@ -1134,6 +1156,7 @@ class AppPrefs(context: Context) {
         private const val KEY_PLAYER_TOUCH_GESTURES_ENABLED = "player_touch_gestures_enabled"
         private const val KEY_PLAYER_VIDEOSHOT_PREVIEW_SIZE = "player_videoshot_preview_size"
         private const val KEY_PLAYER_AUDIO_BALANCE_LEVEL = "player_audio_balance_level"
+        private const val KEY_PLAYER_VIDEO_DELAY_MS = "player_video_delay_ms"
         private const val KEY_PLAYER_PLAYBACK_MODE = "player_playback_mode"
         private const val KEY_PLAYER_SETTINGS_APPLY_TO_GLOBAL = "player_settings_apply_to_global"
         private const val KEY_PLAYER_UP_QUICK_CARD_ENABLED = "player_up_quick_card_enabled"
@@ -1249,6 +1272,11 @@ class AppPrefs(context: Context) {
         const val PLAYER_AUDIO_BALANCE_LOW = "low"
         const val PLAYER_AUDIO_BALANCE_MEDIUM = "medium"
         const val PLAYER_AUDIO_BALANCE_HIGH = "high"
+
+        const val PLAYER_VIDEO_DELAY_MS_MIN = -500
+        const val PLAYER_VIDEO_DELAY_MS_MAX = 500
+        const val PLAYER_VIDEO_DELAY_MS_STEP = 50
+        const val PLAYER_VIDEO_DELAY_MS_DEFAULT = 0
 
         const val API_SOURCE_WEB = "web"
         const val API_SOURCE_APP = "app"
