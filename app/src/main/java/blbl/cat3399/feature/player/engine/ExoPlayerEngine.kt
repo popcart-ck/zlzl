@@ -944,7 +944,8 @@ private class NoVsyncMediaCodecVideoRenderer(
         presentationTimeUs: Long,
         releaseTimeNs: Long,
     ) {
-        // 跳过 ExoPlayer 和 SurfaceFlinger 的 vsync 时间戳对齐，直接让 MediaCodec 立即上屏
-        codec.releaseOutputBuffer(index, true)
+        // 0L 表示"立即渲染，不指定时间戳"，MediaCodec 收到后立刻送 Surface，不等 vsync
+        // 同时保留父类状态更新，避免黑屏转圈
+        super.renderOutputBufferV21(codec, index, presentationTimeUs, 0L)
     }
 }
