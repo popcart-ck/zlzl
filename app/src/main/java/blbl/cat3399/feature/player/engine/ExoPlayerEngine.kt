@@ -95,6 +95,7 @@ internal class ExoPlayerEngine(
     private val seamlessManifestFile: File = File(appContext.cacheDir, "blbl_seamless_dash_${System.identityHashCode(this)}.mpd")
 
     private val volumeBalanceProcessor = VolumeBalanceAudioProcessor(level = audioBalanceLevel)
+    private val audioDelayProcessor = AudioDelayProcessor(200)
     private val loadControl: DefaultLoadControl =
         DefaultLoadControl.Builder()
             // Keep roughly one forward buffer window behind the playhead so in-buffer seek
@@ -908,7 +909,7 @@ private class BlblRenderersFactory(
         return DefaultAudioSink.Builder(context)
             .setEnableFloatOutput(false)
             .setEnableAudioTrackPlaybackParams(false)
-            .setAudioProcessors(arrayOf(volumeBalanceProcessor))
+            .setAudioProcessors(arrayOf(volumeBalanceProcessor, audioDelayProcessor))
             .build()
     }
 
