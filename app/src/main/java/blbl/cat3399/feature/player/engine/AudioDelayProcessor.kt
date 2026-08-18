@@ -5,7 +5,7 @@ import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.audio.BaseAudioProcessor
 import androidx.media3.common.util.UnstableApi
 import java.nio.ByteBuffer
-import kotlin.math.min
+import java.nio.ByteOrder
 
 @UnstableApi
 internal class AudioDelayProcessor(initialDelayMs: Int = 0) : BaseAudioProcessor() {
@@ -43,39 +43,44 @@ internal class AudioDelayProcessor(initialDelayMs: Int = 0) : BaseAudioProcessor
     }
 
     override fun queueInput(inputBuffer: ByteBuffer) {
-        if (delayMs <= 0 || !inputBuffer.hasRemaining()) {
-            val out = replaceOutputBuffer(inputBuffer.remaining())
-            out.put(inputBuffer)
-            out.flip()
-            return
-        }
-
-        val rb = ringBuffer
-        if (rb == null || delayByteCount <= 0) {
-            val out = replaceOutputBuffer(inputBuffer.remaining())
-            out.put(inputBuffer)
-            out.flip()
-            return
-        }
-
         val inputRemaining = inputBuffer.remaining()
-        val canOutput = min(inputRemaining, ringUsed)
-        val out = replaceOutputBuffer(canOutput)
+        if (inputRemaining == 0) {
+            return
+        }
 
-        // Read delayed samples from ring buffer.
-        for (i in 0 until canOutput) {
-            out.put(rb[ringReadPos])
-            ringReadPos = (ringReadPos + 1) % delayByteCount
-            ringUsed--
+        val out = replaceOutputBuffer(inputRemaining)
+        out.order(ByteOrder.nativeOrder())
+
+        if (delayMs <= 0 || delayByteCount <= 0) {
+            out.put(inputBuffer)
+            out.flip()
+            return
+        }
+
+        val rb = ringBuffer ?: run {
+            out.put(inputBuffer)
+            out.flip()
+            return
+        }
+
+        // Byte-by-byte delay line: newest sample goes into the ring, oldest sample (if available)
+        // comes out. Until the ring is fully primed we emit silence.
+        for (i in 0 until inputRemaining) {
+            val inputByte = inputBuffer.get()
+            if (ringUsed >= delayByteCount) {
+                out.put(rb[ringReadPos])
+                ringReadPos = (ringReadPos + 1) % delayByteCount
+                ringUsed--
+            } else {
+                out.put(0)
+            }
+            rb[ringWritePos] = inputByte
+            ringWritePos = (ringWritePos + 1) % delayByteCount
+            if (ringUsed < delayByteCount) {
+                ringUsed++
+            }
         }
         out.flip()
-
-        // Write new samples into ring buffer.
-        for (i in 0 until inputRemaining) {
-            rb[ringWritePos] = inputBuffer.get()
-            ringWritePos = (ringWritePos + 1) % delayByteCount
-            if (ringUsed < delayByteCount) ringUsed++
-        }
     }
 
     override fun onFlush() {

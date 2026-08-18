@@ -56,18 +56,8 @@ import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.InputStream
 import java.util.Locale
-import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.CopyOnWriteArraySet
 import kotlin.math.roundToLong
-
-internal object VideoFrameReleaseOffset {
-    private val delayMs = AtomicInteger(0)
-    var valueMs: Int
-        get() = delayMs.get()
-        set(value) {
-            delayMs.set(value.coerceIn(-500, 500))
-        }
-}
 
 internal data class LiveHlsDebugInfo(
     val mediaSequence: Long?,
@@ -95,7 +85,7 @@ internal class ExoPlayerEngine(
     private val seamlessManifestFile: File = File(appContext.cacheDir, "blbl_seamless_dash_${System.identityHashCode(this)}.mpd")
 
     private val volumeBalanceProcessor = VolumeBalanceAudioProcessor(level = audioBalanceLevel)
-    private val audioDelayProcessor = AudioDelayProcessor(200)
+    private val audioDelayProcessor = AudioDelayProcessor(0)
     private val loadControl: DefaultLoadControl =
         DefaultLoadControl.Builder()
             // Keep roughly one forward buffer window behind the playhead so in-buffer seek
@@ -108,7 +98,7 @@ internal class ExoPlayerEngine(
     private val trackSelector = DefaultTrackSelector(context, SeamlessQualityTrackSelectionFactory(seamlessQualityController))
 
     val exoPlayer: ExoPlayer =
-        ExoPlayer.Builder(context, BlblRenderersFactory(context.applicationContext, volumeBalanceProcessor))
+        ExoPlayer.Builder(context, BlblRenderersFactory(context.applicationContext, volumeBalanceProcessor, audioDelayProcessor))
             .setLoadControl(loadControl)
             .setTrackSelector(trackSelector)
             .setVideoChangeFrameRateStrategy(C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_OFF)
@@ -265,7 +255,7 @@ internal class ExoPlayerEngine(
                 }
             },
         )
-        VideoFrameReleaseOffset.valueMs = BiliClient.prefs.playerVideoDelayMs
+        audioDelayProcessor.setDelayMs(BiliClient.prefs.playerVideoDelayMs)
         exoPlayer.addAnalyticsListener(
             object : AnalyticsListener {
                 override fun onRenderedFirstFrame(eventTime: AnalyticsListener.EventTime, output: Any, renderTimeMs: Long) {
@@ -423,8 +413,8 @@ internal class ExoPlayerEngine(
         volumeBalanceProcessor.setLevel(level)
     }
 
-    fun setVideoDelayMs(ms: Int) {
-        VideoFrameReleaseOffset.valueMs = ms
+    fun setAudioDelayMs(ms: Int) {
+        audioDelayProcessor.setDelayMs(ms.coerceIn(0, AudioDelayProcessor.MAX_DELAY_MS))
     }
 
     private fun createCdnFactory(
@@ -904,6 +894,7 @@ private const val LIVE_HLS_DEBUG_RECENT_SEGMENT_COUNT = 3
 private class BlblRenderersFactory(
     context: Context,
     private val volumeBalanceProcessor: VolumeBalanceAudioProcessor,
+    private val audioDelayProcessor: AudioDelayProcessor,
 ) : DefaultRenderersFactory(context) {
     override fun buildAudioSink(context: Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean): AudioSink {
         return DefaultAudioSink.Builder(context)
