@@ -157,6 +157,7 @@ internal data class PlayerSessionSettings(
     val danmaku: DanmakuSessionSettings,
     val debugEnabled: Boolean,
     val engineKind: PlayerEngineKind,
+    val videoDelayMs: Int = 0,
 )
 
 internal fun PlayerSessionSettings.toEngineSwitchJsonString(): String {
@@ -189,6 +190,7 @@ internal fun PlayerSessionSettings.toEngineSwitchJsonString(): String {
             put("danmakuShowHighLikeIcon", danmaku.showHighLikeIcon)
             put("debugEnabled", debugEnabled)
             put("engineKind", engineKind.prefValue)
+            put("videoDelayMs", videoDelayMs)
         }
     return obj.toString()
 }
@@ -252,6 +254,19 @@ internal fun PlayerSessionSettings.restoreFromEngineSwitchJsonString(raw: String
     val danShowHighLikeIcon = obj.optBoolean("danmakuShowHighLikeIcon", danmaku.showHighLikeIcon)
     val dbg = obj.optBoolean("debugEnabled", debugEnabled)
     val restoredEngineKind = PlayerEngineKind.fromPrefValue(obj.optString("engineKind", engineKind.prefValue))
+    val videoDelayMs =
+        optInt("videoDelayMs", this.videoDelayMs).let { ms ->
+            val clamped = ms.coerceIn(AppPrefs.PLAYER_VIDEO_DELAY_MS_MIN, AppPrefs.PLAYER_VIDEO_DELAY_MS_MAX)
+            val steps = clamped / AppPrefs.PLAYER_VIDEO_DELAY_MS_STEP
+            val remainder = clamped % AppPrefs.PLAYER_VIDEO_DELAY_MS_STEP
+            val snapped =
+                if (kotlin.math.abs(remainder) >= AppPrefs.PLAYER_VIDEO_DELAY_MS_STEP / 2) {
+                    (steps + if (clamped >= 0) 1 else -1) * AppPrefs.PLAYER_VIDEO_DELAY_MS_STEP
+                } else {
+                    steps * AppPrefs.PLAYER_VIDEO_DELAY_MS_STEP
+                }
+            snapped.coerceIn(AppPrefs.PLAYER_VIDEO_DELAY_MS_MIN, AppPrefs.PLAYER_VIDEO_DELAY_MS_MAX)
+        }
 
     return copy(
         playbackSpeed = speed,
@@ -283,5 +298,6 @@ internal fun PlayerSessionSettings.restoreFromEngineSwitchJsonString(raw: String
             ),
         debugEnabled = dbg,
         engineKind = restoredEngineKind,
+        videoDelayMs = videoDelayMs,
     )
 }

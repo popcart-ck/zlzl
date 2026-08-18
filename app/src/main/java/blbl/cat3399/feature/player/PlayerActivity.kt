@@ -829,6 +829,7 @@ class PlayerActivity : BaseActivity() {
             ),
             debugEnabled = prefs.playerDebugEnabled,
             engineKind = PlayerEngineKind.fromPrefValue(prefs.playerEngineKind),
+            videoDelayMs = prefs.playerVideoDelayMs,
         )
         if (sessionOverrideJson != null) {
             session = session.restoreFromEngineSwitchJsonString(sessionOverrideJson)

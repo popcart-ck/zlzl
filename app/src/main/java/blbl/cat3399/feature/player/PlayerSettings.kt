@@ -36,6 +36,7 @@ internal object PlayerSettingKeys {
     const val CODEC = "codec"
     const val PLAYBACK_SPEED = "playback_speed"
     const val AUDIO_BALANCE = "audio_balance"
+    const val VIDEO_DELAY = "video_delay"
     const val PLAYBACK_MODE = "playback_mode"
     const val SUBTITLE_MENU = "subtitle_menu"
     const val SUBTITLE_ENABLED = "subtitle_enabled"
@@ -335,6 +336,7 @@ internal fun PlayerActivity.handleSettingsItemClick(item: PlayerSettingsAdapter.
         PlayerSettingKeys.CODEC -> showCodecDialog()
         PlayerSettingKeys.PLAYBACK_SPEED -> showSpeedDialog()
         PlayerSettingKeys.AUDIO_BALANCE -> showAudioBalanceDialog()
+        PlayerSettingKeys.VIDEO_DELAY -> showVideoDelayDialog()
         PlayerSettingKeys.PLAYBACK_MODE -> showPlaybackModeDialog()
         PlayerSettingKeys.SUBTITLE_MENU -> showSubtitleSettingsMenu()
         PlayerSettingKeys.SUBTITLE_ENABLED -> {
@@ -522,6 +524,7 @@ private fun PlayerActivity.buildRootSettingsItems(
         subtitleSupported.takeIf { it }?.let { settingItem(PlayerSettingKeys.SUBTITLE_MENU, "字幕设置", ">") },
         settingItem(PlayerSettingKeys.DANMAKU_MENU, "弹幕设置", ">"),
         settingItem(PlayerSettingKeys.AUDIO_BALANCE, "音频平衡", session.audioBalanceLevel.label),
+        settingItem(PlayerSettingKeys.VIDEO_DELAY, "画面延迟", videoDelaySubtitle()),
         settingItem(
             PlayerSettingKeys.PERSISTENT_BOTTOM_PROGRESS,
             "底部常驻进度条",
@@ -583,6 +586,11 @@ private fun PlayerActivity.playerEngineSubtitle(): String {
         PlayerEngineKind.IjkPlayer -> "IjkPlayer"
         PlayerEngineKind.ExoPlayer -> "ExoPlayer"
     }
+}
+
+private fun PlayerActivity.videoDelaySubtitle(): String {
+    val ms = session.videoDelayMs
+    return if (ms == 0) "0ms" else "${if (ms > 0) "+" else ""}${ms}ms"
 }
 
 private fun PlayerActivity.restartForEngineSwitch(picked: PlayerEngineKind) {
@@ -802,6 +810,32 @@ internal fun PlayerActivity.showAudioBalanceDialog() {
             },
         )
     }
+}
+
+internal fun PlayerActivity.showVideoDelayDialog() {
+    val options = (-500..500 step 50).toList()
+    val current = options.indexOf(session.videoDelayMs).takeIf { it >= 0 } ?: options.indexOf(0)
+    showSettingsChoiceDialog(
+        title = "画面延迟",
+        options = options,
+        checkedIndex = current,
+        label = { ms -> if (ms == 0) "0ms" else "${if (ms > 0) "+" else ""}${ms}ms" },
+    ) { picked ->
+        applyVideoDelaySetting(picked)
+    }
+}
+
+internal fun PlayerActivity.applyVideoDelaySetting(ms: Int) {
+    val coerced = ms.coerceIn(-500, 500)
+    applySessionSettingValue(
+        value = coerced,
+        updateSession = { copy(videoDelayMs = it) },
+        syncToGlobal = { playerVideoDelayMs = it },
+        afterApplied = { nextMs ->
+            (player as? ExoPlayerEngine)?.setVideoDelayMs(nextMs)
+            AppToast.show(this, "画面延迟：${if (nextMs > 0) "+" else ""}${nextMs}ms")
+        },
+    )
 }
 
 internal fun PlayerActivity.isPgcLikePlayback(): Boolean {
