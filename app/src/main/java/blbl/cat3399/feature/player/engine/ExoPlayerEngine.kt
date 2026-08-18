@@ -56,8 +56,18 @@ import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.InputStream
 import java.util.Locale
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.CopyOnWriteArraySet
 import kotlin.math.roundToLong
+
+internal object VideoFrameReleaseOffset {
+    private val delayMs = AtomicInteger(0)
+    var valueMs: Int
+        get() = delayMs.get()
+        set(value) {
+            delayMs.set(value.coerceIn(-500, 500))
+        }
+}
 
 internal data class LiveHlsDebugInfo(
     val mediaSequence: Long?,
@@ -254,6 +264,7 @@ internal class ExoPlayerEngine(
                 }
             },
         )
+        VideoFrameReleaseOffset.valueMs = BiliClient.prefs.playerVideoDelayMs
         exoPlayer.addAnalyticsListener(
             object : AnalyticsListener {
                 override fun onRenderedFirstFrame(eventTime: AnalyticsListener.EventTime, output: Any, renderTimeMs: Long) {
@@ -409,6 +420,10 @@ internal class ExoPlayerEngine(
 
     fun setAudioBalanceLevel(level: AudioBalanceLevel) {
         volumeBalanceProcessor.setLevel(level)
+    }
+
+    fun setVideoDelayMs(ms: Int) {
+        VideoFrameReleaseOffset.valueMs = ms
     }
 
     private fun createCdnFactory(
@@ -929,7 +944,8 @@ private class NoVsyncMediaCodecVideoRenderer(
         presentationTimeUs: Long,
         releaseTimeNs: Long,
     ) {
-        // 绕过电视错误的 vsync 相位，按当前时间直接上屏
-        super.renderOutputBufferV21(codec, index, presentationTimeUs, System.nanoTime())
+        // 绕过电视错误的 vsync 相位；同时叠加用户手动调节的画面延迟（正=延后，负=提前）
+        val offsetNs = VideoFrameReleaseOffset.valueMs * 1_000_000L
+        super.renderOutputBufferV21(codec, index, presentationTimeUs, System.nanoTime() + offsetNs)
     }
 }
