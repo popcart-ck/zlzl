@@ -906,8 +906,8 @@ private class BlblRenderersFactory(
 ) : DefaultRenderersFactory(context) {
     override fun buildAudioSink(context: Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean): AudioSink {
         return DefaultAudioSink.Builder(context)
-            .setEnableFloatOutput(enableFloatOutput)
-            .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
+            .setEnableFloatOutput(false)
+            .setEnableAudioTrackPlaybackParams(false)
             .setAudioProcessors(arrayOf(volumeBalanceProcessor))
             .build()
     }
