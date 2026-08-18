@@ -524,7 +524,7 @@ private fun PlayerActivity.buildRootSettingsItems(
         subtitleSupported.takeIf { it }?.let { settingItem(PlayerSettingKeys.SUBTITLE_MENU, "字幕设置", ">") },
         settingItem(PlayerSettingKeys.DANMAKU_MENU, "弹幕设置", ">"),
         settingItem(PlayerSettingKeys.AUDIO_BALANCE, "音频平衡", session.audioBalanceLevel.label),
-        settingItem(PlayerSettingKeys.VIDEO_DELAY, "画面延迟", videoDelaySubtitle()),
+        settingItem(PlayerSettingKeys.VIDEO_DELAY, "音频延迟", videoDelaySubtitle()),
         settingItem(
             PlayerSettingKeys.PERSISTENT_BOTTOM_PROGRESS,
             "底部常驻进度条",
@@ -589,8 +589,7 @@ private fun PlayerActivity.playerEngineSubtitle(): String {
 }
 
 private fun PlayerActivity.videoDelaySubtitle(): String {
-    val ms = session.videoDelayMs
-    return if (ms == 0) "0ms" else "${if (ms > 0) "+" else ""}${ms}ms"
+    return "${session.videoDelayMs}ms"
 }
 
 private fun PlayerActivity.restartForEngineSwitch(picked: PlayerEngineKind) {
@@ -813,27 +812,27 @@ internal fun PlayerActivity.showAudioBalanceDialog() {
 }
 
 internal fun PlayerActivity.showVideoDelayDialog() {
-    val options = (-500..500 step 50).toList()
+    val options = (0..500 step 50).toList()
     val current = options.indexOf(session.videoDelayMs).takeIf { it >= 0 } ?: options.indexOf(0)
     showSettingsChoiceDialog(
-        title = "画面延迟",
+        title = "音频延迟",
         options = options,
         checkedIndex = current,
-        label = { ms -> if (ms == 0) "0ms" else "${if (ms > 0) "+" else ""}${ms}ms" },
+        label = { ms -> "${ms}ms" },
     ) { picked ->
         applyVideoDelaySetting(picked)
     }
 }
 
 internal fun PlayerActivity.applyVideoDelaySetting(ms: Int) {
-    val coerced = ms.coerceIn(-500, 500)
+    val coerced = ms.coerceIn(0, 500)
     applySessionSettingValue(
         value = coerced,
         updateSession = { copy(videoDelayMs = it) },
         syncToGlobal = { playerVideoDelayMs = it },
         afterApplied = { nextMs ->
-            (player as? ExoPlayerEngine)?.setVideoDelayMs(nextMs)
-            AppToast.show(this, "画面延迟：${if (nextMs > 0) "+" else ""}${nextMs}ms")
+            (player as? ExoPlayerEngine)?.setAudioDelayMs(nextMs)
+            AppToast.show(this, "音频延迟：${nextMs}ms")
         },
     )
 }

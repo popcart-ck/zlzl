@@ -260,8 +260,8 @@ internal fun PlayerSessionSettings.restoreFromEngineSwitchJsonString(raw: String
             val steps = clamped / AppPrefs.PLAYER_VIDEO_DELAY_MS_STEP
             val remainder = clamped % AppPrefs.PLAYER_VIDEO_DELAY_MS_STEP
             val snapped =
-                if (kotlin.math.abs(remainder) >= AppPrefs.PLAYER_VIDEO_DELAY_MS_STEP / 2) {
-                    (steps + if (clamped >= 0) 1 else -1) * AppPrefs.PLAYER_VIDEO_DELAY_MS_STEP
+                if (remainder >= AppPrefs.PLAYER_VIDEO_DELAY_MS_STEP / 2) {
+                    (steps + 1) * AppPrefs.PLAYER_VIDEO_DELAY_MS_STEP
                 } else {
                     steps * AppPrefs.PLAYER_VIDEO_DELAY_MS_STEP
                 }
