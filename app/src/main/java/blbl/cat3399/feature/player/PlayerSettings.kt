@@ -812,7 +812,7 @@ internal fun PlayerActivity.showAudioBalanceDialog() {
 }
 
 internal fun PlayerActivity.showVideoDelayDialog() {
-    val options = (0..500 step 50).toList()
+    val options = listOf(0, 50, 100, 150, 175, 200, 225, 250, 300, 400, 500)
     val current = options.indexOf(session.videoDelayMs).takeIf { it >= 0 } ?: options.indexOf(0)
     showSettingsChoiceDialog(
         title = "音频延迟",
@@ -826,15 +826,11 @@ internal fun PlayerActivity.showVideoDelayDialog() {
 
 internal fun PlayerActivity.applyVideoDelaySetting(ms: Int) {
     val coerced = ms.coerceIn(0, 500)
-    applySessionSettingValue(
-        value = coerced,
-        updateSession = { copy(videoDelayMs = it) },
-        syncToGlobal = { playerVideoDelayMs = it },
-        afterApplied = { nextMs ->
-            (player as? ExoPlayerEngine)?.setAudioDelayMs(nextMs)
-            AppToast.show(this, "音频延迟：${nextMs}ms")
-        },
-    )
+    BiliClient.prefs.playerVideoDelayMs = coerced
+    session = session.copy(videoDelayMs = coerced)
+    (player as? ExoPlayerEngine)?.setAudioDelayMs(coerced)
+    AppToast.show(this, "音频延迟：${coerced}ms")
+    refreshSettingsPanel()
 }
 
 internal fun PlayerActivity.isPgcLikePlayback(): Boolean {
