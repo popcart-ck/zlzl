@@ -1275,7 +1275,7 @@ class AppPrefs(context: Context) {
 
         const val PLAYER_VIDEO_DELAY_MS_MIN = 0
         const val PLAYER_VIDEO_DELAY_MS_MAX = 500
-        const val PLAYER_VIDEO_DELAY_MS_STEP = 50
+        const val PLAYER_VIDEO_DELAY_MS_STEP = 25
         const val PLAYER_VIDEO_DELAY_MS_DEFAULT = 0
 
         const val API_SOURCE_WEB = "web"
